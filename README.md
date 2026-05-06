@@ -96,3 +96,37 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+```
+src
+├── app.controller.spec.ts
+├── app.controller.ts
+├── app.module.ts
+├── app.service.ts
+├── constants
+│   └── constants.ts
+├── mail-worker
+│   ├── Factories
+│   │   ├── QueueFactory.ts
+│   │   └── WorkerFactory.ts
+│   ├── mail-worker.module.ts
+│   ├── mail-worker.service.ts
+│   └── proccesors
+│       └── email.proccessors.ts
+├── main.ts
+├── notification.gateway.ts
+│   └── notification.gateway.ts.gateway.ts
+├── prisma
+│   ├── prisma.module.ts
+│   └── prisma.service.ts
+├── queue
+│   ├── queue.module.ts
+│   └── queue.service.ts
+└── user
+    ├── dto
+    │   ├── send-bulk-email.dto.ts
+    │   └── send-email.dto.ts
+    ├── user.controller.ts
+    ├── user.module.ts
+    └── user.service.ts
+```

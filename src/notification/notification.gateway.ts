@@ -1,10 +1,10 @@
 import { OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import IORedis from 'ioredis';
 import { QueueEvents } from 'bullmq';
-import { QUEUE_NAMES } from 'src/constants/constants';
+import { QUEUE_NAMES } from 'src/constants';
 
 @WebSocketGateway({ cors: true})
-export class NotificationGatewayTsGateway implements OnGatewayInit {
+export class NotificationGateway implements OnGatewayInit {
   
   @WebSocketServer() server;
   connection: IORedis | null;

@@ -32,16 +32,17 @@ export const sendEmailProccessor = async (job) => {
     console.log("Job Name:", job.name);
     console.log("Job Data:", job.data);
 
-    const jobData = await prisma.job.findUnique({
-        where: {
-            id: job.data.jobId,
-        }
-    })
+    const databaseId = job.data.jobId; 
 
-    if(!jobData) {
-        console.log("❌ Job data not found for job ID:", job.data.jobId);
-        return;
+    const jobData = await prisma.job.findUnique({
+        where: { id: Number(databaseId) }
+    });
+
+
+    if (!jobData) {
+        throw new Error(`Critical: DB Record ${databaseId} not found.`);
     }
+
     await sendEmail(jobData?.email,jobData?.message);
 
     await prisma.job.update({

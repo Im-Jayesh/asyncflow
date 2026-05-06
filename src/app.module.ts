@@ -5,7 +5,9 @@ import { PrismaModule } from './prisma/prisma.module';
 import { UserModule } from './user/user.module';
 import { QueueModule } from './queue/queue.module';
 import {  ThrottlerModule } from '@nestjs/throttler';
-import { NotificationGatewayTsGateway } from './notification.gateway.ts/notification.gateway.ts.gateway';
+import { NotificationGateway } from './notification/notification.gateway';
+import { MailWorkerService } from './mail-worker/mail-worker.service';
+import { MailWorkerModule } from './mail-worker/mail-worker.module';
 
 @Module({
   imports: [PrismaModule, UserModule, QueueModule,
@@ -16,9 +18,10 @@ import { NotificationGatewayTsGateway } from './notification.gateway.ts/notifica
           limit: 3,   // Maximum number of requests within the TTL
         },
       ],
-    })
+    }),
+    MailWorkerModule
   ],
   controllers: [AppController],
-  providers: [AppService, NotificationGatewayTsGateway],
+  providers: [AppService, NotificationGateway, MailWorkerService],
 })
 export class AppModule {}

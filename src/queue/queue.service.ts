@@ -1,28 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
-import { QUEUE_NAMES, JOB_NAMES } from 'src/constants/constants';
-import { createQueue } from './Factories/QueueFactory';
+import { JOB_NAMES } from 'src/constants';
 
 @Injectable()
 export class QueueService {
-  private connection: IORedis;
-  private email_notificationQueue: Queue;
 
-  constructor() {
-    this.connection = new IORedis({
-      host: '127.0.0.1',
-      port: 6379,
-      maxRetriesPerRequest: null, // keep consistent
-    });
-
-    this.email_notificationQueue = createQueue(QUEUE_NAMES.EMAILNOTIFICATIONS, this.connection);
-  }
+  constructor(
+    @Inject('MAIL_QUEUE') private readonly emailQueue: Queue
+  ) {}
   
   async addEmailJobToNotificationsQueue(jobId: number, delay: number) {
     console.log("📤 Adding job to queue...");
 
-    await this.email_notificationQueue.add(JOB_NAMES.SEND_EMAIL, {
+    await this.emailQueue.add(JOB_NAMES.SEND_EMAIL, {
       jobId
     },{
         delay: delay,
@@ -48,7 +38,7 @@ export class QueueService {
       },
     }));
 
-    await this.email_notificationQueue.addBulk(bulkJobs);
+    await this.emailQueue.addBulk(bulkJobs);
   }
 
 }
