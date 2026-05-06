@@ -12,6 +12,8 @@ model User {
   email     String   @unique
   name      String?
   createdAt DateTime @default(now())
+
+  notifications Notification[]
 }
 
 enum JobStatus {
@@ -29,4 +31,16 @@ model Job {
   sendAt    DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+}
+
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    Int       
+  user      User      @relation(fields: [userId], references: [id])
+  type      String
+  message   String
+  isRead    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  @@index([userId, isRead])
 }

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ModelWE - Notification Tester</title>
+    <!-- Tailwind for minimal styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Socket.io Client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <!-- FontAwesome for the Bell Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-sm px-8 py-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold tracking-tight text-gray-900">ModelWE <span class="text-sm font-normal text-gray-500">Test Environment</span></h1>
+        
+        <!-- Bell Icon Container -->
+        <div class="relative">
+            <button id="bell-btn" class="text-gray-500 hover:text-gray-800 transition relative p-2 focus:outline-none">
+                <i class="fa-solid fa-bell text-xl"></i>
+                <!-- Unread Badge (Hidden by default) -->
+                <span id="unread-badge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
+                    0
+                </span>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div id="dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white border border-gray-100 rounded-lg shadow-lg overflow-hidden z-50">
+                <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                    <h3 class="text-sm font-semibold text-gray-700">Notifications</h3>
+                </div>
+                <!-- Notification List -->
+                <div id="notification-list" class="max-h-96 overflow-y-auto">
+                    <!-- JS will inject items here -->
+                    <div class="p-4 text-sm text-gray-500 text-center">Connect below to load notifications.</div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content (Login Simulator) -->
+    <main class="flex-grow flex items-center justify-center">
+        <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100 w-96 text-center">
+            <h2 class="text-lg font-semibold mb-4">Simulate User Session</h2>
+            <p class="text-sm text-gray-500 mb-6">Enter a database User ID to connect to their private WebSocket room.</p>
+            
+            <input type="number" id="user-id-input" placeholder="User ID (e.g. 1)" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4 text-center">
+            
+            <button id="connect-btn" class="w-full bg-black text-white font-medium py-2 rounded-md hover:bg-gray-800 transition">
+                Connect to Socket
+            </button>
+            <p id="status-text" class="text-xs text-gray-400 mt-4">Status: Disconnected</p>
+        </div>
+    </main>
+
+    <!-- Vanilla JS Logic -->
+    <script>
+        const API_URL = 'http://localhost:3000'; // Make sure your NestJS is running here
+        let socket = null;
+        let currentUserId = null;
+        let notifications = [];
+
+        // DOM Elements
+        const connectBtn = document.getElementById('connect-btn');
+        const userIdInput = document.getElementById('user-id-input');
+        const statusText = document.getElementById('status-text');
+        const bellBtn = document.getElementById('bell-btn');
+        const dropdown = document.getElementById('dropdown');
+        const notificationList = document.getElementById('notification-list');
+        const unreadBadge = document.getElementById('unread-badge');
+
+        // Toggle Dropdown
+        bellBtn.addEventListener('click', () => {
+            dropdown.classList.toggle('hidden');
+        });
+
+        // 1. Connect Button Logic
+        connectBtn.addEventListener('click', async () => {
+            const id = userIdInput.value;
+            if (!id) return alert("Please enter a User ID");
+            currentUserId = id;
+
+            // Update UI
+            connectBtn.disabled = true;
+            connectBtn.innerText = "Connecting...";
+
+            // Initialize Socket with Handshake
+            socket = io(API_URL, {
+                query: { userId: currentUserId }
+            });
+
+            socket.on('connect', () => {
+                statusText.innerText = `Status: Connected (Room: user_${currentUserId})`;
+                statusText.classList.replace('text-gray-400', 'text-green-500');
+                connectBtn.innerText = "Connected";
+                
+                // Fetch historical DB notifications
+                fetchNotifications();
+            });
+
+            // 2. Listen for the private room broadcast
+            socket.on('new_notification', (newNotif) => {
+                console.log("🔔 New Notification Received!", newNotif);
+                
+                // Add to start of array
+                notifications.unshift(newNotif);
+                renderNotifications();
+
+                // Optional: Make the bell jiggle when a new one comes in
+                bellBtn.classList.add('animate-bounce');
+                setTimeout(() => bellBtn.classList.remove('animate-bounce'), 1000);
+            });
+        });
+
+        // 3. Fetch from your REST API
+        async function fetchNotifications() {
+            try {
+                const response = await fetch(`${API_URL}/notification/${currentUserId}`);
+                if(response.ok) {
+                    notifications = await response.json();
+                    renderNotifications();
+                }
+            } catch (err) {
+                console.error("Failed to fetch notifications. Is CORS enabled in NestJS?", err);
+            }
+        }
+
+        // 4. Mark as Read API Call
+        async function markAsRead(id) {
+            try {
+                // Update Backend
+                await fetch(`${API_URL}/notification/${id}`, { method: 'PATCH' });
+                
+                // Update Local State instantly (Optimistic UI)
+                const notif = notifications.find(n => n.id === id);
+                if (notif) notif.isRead = true;
+                
+                renderNotifications();
+            } catch (err) {
+                console.error("Failed to mark as read", err);
+            }
+        }
+
+        // 5. Render UI
+        function renderNotifications() {
+            // Calculate unread count
+            const unreadCount = notifications.filter(n => !n.isRead).length;
+            
+            // Update Badge
+            if (unreadCount > 0) {
+                unreadBadge.innerText = unreadCount > 99 ? '99+' : unreadCount;
+                unreadBadge.classList.remove('hidden');
+            } else {
+                unreadBadge.classList.add('hidden');
+            }
+
+            // Render List
+            if (notifications.length === 0) {
+                notificationList.innerHTML = `<div class="p-4 text-sm text-gray-500 text-center">No notifications yet.</div>`;
+                return;
+            }
+
+            notificationList.innerHTML = notifications.map(notif => `
+                <div class="p-4 border-b border-gray-50 transition cursor-pointer hover:bg-gray-50 ${notif.isRead ? 'bg-white opacity-70' : 'bg-blue-50/30 border-l-2 border-l-blue-500'}" 
+                     onclick="markAsRead(${notif.id})">
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">${notif.type}</span>
+                        ${!notif.isRead ? `<span class="w-2 h-2 rounded-full bg-blue-500"></span>` : ''}
+                    </div>
+                    <p class="text-sm text-gray-800">${notif.message}</p>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
