@@ -33,4 +33,22 @@ export class QueueService {
         },
     });
   }
+
+  
+  async addBulkEmailJobs(jobs: { jobId: number; delay: number }[]) {
+    console.log(`📤 Adding ${jobs.length} bulk jobs to queue...`);
+
+    const bulkJobs = jobs.map((job) => ({
+      name: JOB_NAMES.SEND_EMAIL,
+      data: { jobId: job.jobId },
+      opts: {
+        delay: job.delay,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5000 },
+      },
+    }));
+
+    await this.email_notificationQueue.addBulk(bulkJobs);
+  }
+
 }

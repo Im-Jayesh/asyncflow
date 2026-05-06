@@ -17,7 +17,8 @@ const connection = new IORedis({
 const worker = createWorker(
   QUEUE_NAMES.EMAILNOTIFICATIONS,
   sendEmailProccessor,
-  connection
+  connection,
+  { concurrency: 10 }
 );
 
 

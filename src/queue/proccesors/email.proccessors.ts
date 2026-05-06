@@ -52,6 +52,12 @@ export const sendEmailProccessor = async (job) => {
         status: "completed",
       },
     });
+
+    return { 
+    status: 'success', 
+    message: `Successfully sent to ${jobData.email}`,
+    timestamp: new Date()
+  };
     
 
   }
